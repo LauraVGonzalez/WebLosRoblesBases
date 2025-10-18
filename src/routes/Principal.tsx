@@ -1,4 +1,4 @@
-import hero from "../assets/hero.png";
+import hero from "../assets/pantalla_inicial.png";
 import { NavLink } from "react-router-dom";
 
 export default function Principal() {

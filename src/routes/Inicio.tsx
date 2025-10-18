@@ -1,10 +1,9 @@
-import fondo from "../assets/hero.png";
+import fondo from "../assets/iniciar_sesion.png";
 
 export default function Inicio() {
   return (
     <section className="relative min-h-[calc(100vh-72px)] w-full">
-      <img src={fondo} alt="" className="absolute inset-0 h-full w-full object-cover blur-sm scale-105" />
-      <div className="absolute inset-0 bg-black/30" />
+      <img src={fondo} alt="" className="absolute inset-0 h-full w-full object-cover scale-105" />
 
       <div className="relative z-[1] mx-auto w-full max-w-[640px] p-6">
         <div className="mx-auto mt-10 rounded-2xl bg-white p-8 shadow-xl">
