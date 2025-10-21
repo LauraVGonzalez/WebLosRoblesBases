@@ -1,48 +1,52 @@
+// backend/src/server.ts
 import express from "express";
 import cors from "cors";
-import { getConnection, testConnection } from "./db"; // 👈 AGREGA getConnection aquí
+import { testConnection } from "./db";
+import disciplinasRouter from "./routes/disciplinas";
+import canchasRouter from "./routes/canchas";
 
 const app = express();
-app.use(cors());
+
+app.use(
+  cors({
+    origin: ["http://localhost:5173"], // frontend vite
+    credentials: false,
+  })
+);
 app.use(express.json());
 
-// ✅ Ruta para probar conexión
-app.get("/test-db", async (req, res) => {
+// Rutas API
+app.use("/api/disciplinas", disciplinasRouter);
+app.use("/api/canchas", canchasRouter);
+
+// Healthcheck DB
+app.get("/test-db", async (_req, res) => {
   try {
-    const result = await testConnection();
-    res.status(200).json({
-      status: "OK",
-      message: "✅ Conexión con Oracle establecida correctamente",
-      data: result
-    });
-  } catch (err) {
-    console.error("❌ Error al probar la conexión:", err);
-    res.status(500).json({
-      status: "ERROR",
-      message: "❌ Error al conectar con Oracle",
-    });
+    await testConnection();
+    res.json({ status: "OK" });
+  } catch {
+    res.status(500).json({ status: "ERROR" });
   }
 });
 
+// 404
+app.use((_req, res) => res.status(404).send("Not Found"));
 
-const PORT = process.env.PORT || 4000;
+// Error handler
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error(err);
+  res.status(500).send(err?.message ?? "Error interno");
+});
+
+const PORT = Number(process.env.PORT) || 4000;
 app.listen(PORT, async () => {
-  console.log(`✅ Servidor escuchando en el puerto ${PORT}`);
-  await testConnection(); // también lo prueba al iniciar
-});
-
-// ✅ Nueva ruta: obtener todos los productos
-app.get("/productos", async (req, res) => {
+  console.log(`✅ API escuchando en http://localhost:${PORT}`);
   try {
-    const conn = await getConnection();
-    const result = await conn.execute(
-      `SELECT id_producto, nombre, precio FROM productos`
-    );
-    await conn.close();
-
-    res.json(result.rows); // Muestra los datos en el navegador
-  } catch (err) {
-    console.error("❌ Error obteniendo productos:", err);
-    res.status(500).json({ error: "Error obteniendo productos" });
+    await testConnection();
+    console.log("✅ Conexión a Oracle OK");
+  } catch (e) {
+    console.error("❌ Conexión a Oracle falló:", e);
   }
 });
+
+export default app;

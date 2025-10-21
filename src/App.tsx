@@ -26,7 +26,7 @@ export default function App() {
                 LOS ROBLES
               </span>
               <span className="text-xs font-semibold text-emerald-200 mt-0.5">
-                HOME
+                INICIO
               </span>
             </div>
           </div>

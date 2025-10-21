@@ -91,7 +91,7 @@ export default function CrearCuenta() {
                 <input
                   required
                   inputMode="numeric"
-                  className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 text-center"
+                  className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   placeholder="3000000000"
                 />
               </div>
