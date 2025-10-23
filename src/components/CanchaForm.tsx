@@ -107,7 +107,7 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
         value={v.nombre}
         onChange={chg}
         placeholder="Stadium name"
-        className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring"
+  className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring placeholder:text-zinc-400"
       />
 
       {/* Disciplina */}
@@ -117,7 +117,7 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
         value={v.idDisciplina}
         onChange={chg}
         disabled={loadDisc}
-        className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring disabled:opacity-60"
+  className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring disabled:opacity-60 placeholder:text-zinc-400"
       >
         <option value={0}>{loadDisc ? "Cargando..." : "Selecciona"}</option>
         {!loadDisc && disc.length === 0 && (
@@ -138,7 +138,7 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
         value={v.valor ? v.valor : ""}
         onChange={chg}
         placeholder="100000"
-        className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring"
+  className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring placeholder:text-zinc-400"
       />
 
       {/* Estado */}
@@ -147,7 +147,7 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
         name="estado"
         value={v.estado}
         onChange={chg}
-        className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring"
+  className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring placeholder:text-zinc-400"
       >
         <option value="">Selecciona</option>
         {ESTADOS_CANCHA.map((e) => (
@@ -165,7 +165,7 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
             name="horaApertura"
             value={v.horaApertura}
             onChange={chg}
-            className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring"
+            className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring placeholder:text-zinc-400"
           >
             {timeOpts.map((t) => (
               <option key={`a-${t}`} value={t}>{t}</option>
@@ -178,7 +178,7 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
             name="horaCierre"
             value={v.horaCierre}
             onChange={chg}
-            className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring"
+            className="mb-3 w-full rounded-lg border px-3 py-2 outline-none focus:ring placeholder:text-zinc-400"
           >
             {timeOpts.map((t) => (
               <option key={`c-${t}`} value={t}>{t}</option>

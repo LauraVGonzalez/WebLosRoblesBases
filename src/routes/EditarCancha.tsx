@@ -14,6 +14,18 @@ export default function EditarCancha() {
   const [disciplinas, setDisciplinas] = React.useState<Disciplina[]>([]);
   const [err, setErr] = React.useState<string | null>(null);
 
+  // Estado para validación en tiempo real
+  const [valorTouched, setValorTouched] = React.useState(false);
+  // Validación de valor
+  const valorValido =
+    form?.valor !== undefined &&
+    /^\d+$/.test(String(form?.valor)) &&
+    Number(form?.valor) > 0;
+  const valorSoloNumerosEstricto =
+    form?.valor !== undefined &&
+    String(form?.valor).length > 0 &&
+    !/^\d+$/.test(String(form?.valor));
+
   React.useEffect(() => {
     (async () => {
       try {
@@ -51,12 +63,17 @@ export default function EditarCancha() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    if (name === "valor") setValorTouched(true);
     setForm((f) =>
       f
         ? {
             ...f,
             [name]:
-              name === "valor" || name === "idDisciplina" ? Number(value) : value,
+              name === "valor"
+                ? value
+                : name === "idDisciplina"
+                ? Number(value)
+                : value,
           }
         : f
     );
@@ -65,9 +82,13 @@ export default function EditarCancha() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form) return;
+    if (!valorValido) return; // No guardar si el valor no es válido
     try {
       setSaving(true);
-      await canchasSvc.update(Number(id), form);
+      await canchasSvc.update(Number(id), {
+        ...form,
+        valor: Number(form.valor),
+      });
       alert("✅ Cambios guardados correctamente");
       nav("/Principal/Canchas");
     } catch (e: any) {
@@ -152,9 +173,41 @@ export default function EditarCancha() {
                 inputMode="numeric"
                 value={form?.valor ?? ""}
                 onChange={handleChange}
+                onBlur={() => setValorTouched(true)}
                 placeholder="100000"
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${
+                  valorTouched
+                    ? valorValido
+                      ? "border-green-400"
+                      : "border-red-400"
+                    : "border-zinc-300"
+                }`}
               />
+              {valorTouched && (!valorValido || valorSoloNumerosEstricto) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text
+                        x="12"
+                        y="16"
+                        textAnchor="middle"
+                        fontSize="12"
+                        fontWeight="bold"
+                        fill="#fff"
+                        fontFamily="Arial"
+                      >
+                        i
+                      </text>
+                    </svg>
+                  </span>
+                  <span>
+                    {form?.valor && valorSoloNumerosEstricto
+                      ? "Campo inválido"
+                      : "Este campo es obligatorio"}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Estado */}
@@ -189,11 +242,14 @@ export default function EditarCancha() {
                 >
                   {Array.from({ length: 24 }, (_, h) =>
                     ["00", "30"].map((m) => (
-                      <option key={`${h}:${m}`} value={`${h.toString().padStart(2, "0")}:${m}`}>
+                      <option
+                        key={`${h}:${m}`}
+                        value={`${h.toString().padStart(2, "0")}:${m}`}
+                      >
                         {`${h.toString().padStart(2, "0")}:${m}`}
                       </option>
                     ))
-                  )}
+                  ).flat()}
                 </select>
               </div>
 
@@ -209,11 +265,14 @@ export default function EditarCancha() {
                 >
                   {Array.from({ length: 24 }, (_, h) =>
                     ["00", "30"].map((m) => (
-                      <option key={`${h}:${m}`} value={`${h.toString().padStart(2, "0")}:${m}`}>
+                      <option
+                        key={`${h}:${m}`}
+                        value={`${h.toString().padStart(2, "0")}:${m}`}
+                      >
                         {`${h.toString().padStart(2, "0")}:${m}`}
                       </option>
                     ))
-                  )}
+                  ).flat()}
                 </select>
               </div>
             </div>

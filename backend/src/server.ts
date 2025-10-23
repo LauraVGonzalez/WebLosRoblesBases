@@ -4,6 +4,8 @@ import cors from "cors";
 import { testConnection } from "./db";
 import disciplinasRouter from "./routes/disciplinas";
 import canchasRouter from "./routes/canchas";
+import authRouter from "./routes/auth";
+import usuariosRouter from "./routes/usuarios";
 
 const app = express();
 
@@ -15,9 +17,17 @@ app.use(
 );
 app.use(express.json());
 
+// Log global para todas las peticiones
+app.use((req, res, next) => {
+  console.log(`[GLOBAL LOG] ${req.method} ${req.url}`);
+  next();
+});
+
 // Rutas API
 app.use("/api/disciplinas", disciplinasRouter);
 app.use("/api/canchas", canchasRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/usuarios", usuariosRouter);
 
 // Healthcheck DB
 app.get("/test-db", async (_req, res) => {

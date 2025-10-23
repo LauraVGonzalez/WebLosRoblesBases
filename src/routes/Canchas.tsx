@@ -93,7 +93,7 @@ export default function Canchas() {
           {items.map((c) => (
             <Link
               key={c.id}
-              to={`/Principal/Canchas/Ver/${c.id}`}
+              to={`${(localStorage.getItem('usuario_correo') || '').includes('@losrobles.com') ? '/PrincipalAdmin' : '/Principal'}/Canchas/Ver/${c.id}`}
               className="group block focus:outline-none"
               style={{ textDecoration: 'none' }}
             >
@@ -103,7 +103,7 @@ export default function Canchas() {
                 {/* header tarjeta: nombre centrado sobre el icono y edit en esquina */}
                 <div className="relative mb-3 text-white">
                   <Link
-                    to={`/Principal/Canchas/Editar/${c.id}`}
+                    to={`/PrincipalAdmin/Canchas/Editar/${c.id}`}
                     title="Editar"
                     className="absolute right-0 top-0 rounded-md bg-white/10 px-2 py-1 text-xs hover:bg-white/20 z-10"
                     onClick={e => e.stopPropagation()}
@@ -152,7 +152,7 @@ export default function Canchas() {
       {!loading && !err && items.length === 0 && (
         <p className="mt-8 rounded-xl bg-white/90 p-6 text-center">
           No hay canchas creadas todavía.{" "}
-          <Link className="text-indigo-700 underline" to="/Principal/Canchas/Crear">
+          <Link className="text-indigo-700 underline" to={`${(localStorage.getItem('usuario_correo') || '').includes('@losrobles.com') ? '/PrincipalAdmin' : '/Principal'}/Canchas/Crear`}>
             Crea la primera
           </Link>
           .

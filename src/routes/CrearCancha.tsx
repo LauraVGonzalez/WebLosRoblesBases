@@ -6,6 +6,10 @@ import { disciplinasSvc } from "../services/canchas";
 import type { Cancha, Disciplina, EstadoCancha } from "../types";
 
 export default function CrearCancha() {
+  const [showSuccess, setShowSuccess] = React.useState(false);
+
+  const [showErrors, setShowErrors] = React.useState(false);
+  const [valorTouched, setValorTouched] = React.useState(false);
   const nav = useNavigate();
   const [saving, setSaving] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
@@ -26,6 +30,18 @@ export default function CrearCancha() {
     horaCierre: "",
   });
 
+  // Validación de campos
+  const valid = {
+    nombre: form.nombre.trim().length > 0,
+    idDisciplina: form.idDisciplina > 0,
+    valor: !!form.valor && /^\d+$/.test(form.valor) && Number(form.valor) > 0,
+    valorSoloNumeros: !!form.valor && /^\d+$/.test(form.valor),
+    valorSoloNumerosEstricto: !!form.valor && !/^\d+$/.test(form.valor),
+    estado: !!form.estado,
+    horaApertura: !!form.horaApertura,
+    horaCierre: !!form.horaCierre,
+  };
+
   React.useEffect(() => {
     (async () => {
       try {
@@ -41,6 +57,7 @@ export default function CrearCancha() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    if (name === "valor") setValorTouched(true);
     setForm((f) => ({
       ...f,
       // keep 'valor' as string so placeholder works; convert only idDisciplina to number
@@ -50,6 +67,11 @@ export default function CrearCancha() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowErrors(true);
+    // Si algún campo no es válido, no enviar
+    if (!valid.nombre || !valid.idDisciplina || !valid.valor || !valid.estado || !valid.horaApertura || !valid.horaCierre) {
+      return;
+    }
     try {
       setErr(null);
       setSaving(true);
@@ -62,9 +84,8 @@ export default function CrearCancha() {
         horaApertura: form.horaApertura,
         horaCierre: form.horaCierre,
       };
-      const { id } = await canchasSvc.create(payload);
-      alert("✅ Cancha creada correctamente");
-      nav(`/Principal/Canchas/Editar/${id}`);
+      await canchasSvc.create(payload);
+      setShowSuccess(true);
     } catch (e: any) {
       setErr(e?.message ?? "Error al crear la cancha");
     } finally {
@@ -80,6 +101,28 @@ export default function CrearCancha() {
         alt="Fondo de Crear Cancha"
         className="absolute inset-0 h-full w-full object-cover scale-105"
       />
+
+      {/* Modal de éxito */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30">
+          <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-md w-full flex flex-col items-center">
+            <span className="mb-6">
+              <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
+                <circle cx="50" cy="50" r="45" stroke="#22c55e" strokeWidth="4" fill="none" />
+                <polyline points="30,55 47,72 72,38" fill="none" stroke="#22c55e" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <h2 className="text-2xl font-bold text-zinc-700 mb-2 text-center">Registro exitoso</h2>
+            <p className="text-zinc-500 mb-6 text-center">Se registró la cancha</p>
+            <button
+              className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg px-6 py-2 shadow"
+              onClick={() => { setShowSuccess(false); nav('/Principal/Canchas'); }}
+            >
+              Listo
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Contenedor principal */}
       <div className="relative z-[1] mx-auto w-full max-w-[900px] p-6">
@@ -101,83 +144,138 @@ export default function CrearCancha() {
           <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
             {/* Nombre */}
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">
-                NOMBRE
-              </span>
+              <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">NOMBRE</span>
               <input
                 name="nombre"
                 value={form.nombre}
                 onChange={handleChange}
                 placeholder="Stadium name"
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.nombre ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
               />
+              {valid.nombre && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {/* Mensaje de error debajo del input */}
+              {showErrors && !valid.nombre && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Este campo es obligatorio</span>
+                </div>
+              )}
             </div>
 
             {/* Disciplina */}
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">
-                DISCIPLINA
-              </span>
+              <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">DISCIPLINA</span>
               <select
                 name="idDisciplina"
                 value={form.idDisciplina}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.idDisciplina ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
               >
                 <option value={0}>Selecciona</option>
                 {disciplinas.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nombre}
-                  </option>
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
                 ))}
               </select>
+              {valid.idDisciplina && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {showErrors && !valid.idDisciplina && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Este campo es obligatorio</span>
+                </div>
+              )}
             </div>
 
             {/* Valor */}
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">
-                VALOR
-              </span>
+              <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">VALOR</span>
               <input
                 name="valor"
                 inputMode="numeric"
                 value={form.valor}
                 onChange={handleChange}
+                onBlur={() => setValorTouched(true)}
                 placeholder="10000"
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${(valorTouched || showErrors) ? (valid.valor ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
               />
+              {valid.valor && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {(valorTouched || showErrors) && (!valid.valor || valid.valorSoloNumerosEstricto) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>{form.valor && valid.valorSoloNumerosEstricto ? "Campo inválido" : "Este campo es obligatorio"}</span>
+                </div>
+              )}
             </div>
 
             {/* Estado */}
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">
-                ESTADO
-              </span>
+              <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">ESTADO</span>
               <select
                 name="estado"
                 value={form.estado}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.estado ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
               >
                 <option value="">Selecciona</option>
                 <option value="ACTIVA">Activa</option>
                 <option value="INACTIVA">Inactiva</option>
                 <option value="MANTENIMIENTO">Mantenimiento</option>
               </select>
+              {valid.estado && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {showErrors && !valid.estado && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Este campo es obligatorio</span>
+                </div>
+              )}
             </div>
 
             {/* Horarios */}
             <div className="grid grid-cols-2 gap-3">
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">
-                  HORA APERTURA
-                </span>
+                <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">HORA APERTURA</span>
                 <select
                   name="horaApertura"
                   value={form.horaApertura}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaApertura ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
+                  <option value="">Selecciona</option>
                   {Array.from({ length: 24 }, (_, h) =>
                     ["00", "30"].map((m) => (
                       <option key={`${h}:${m}`} value={`${h.toString().padStart(2, "0")}:${m}`}>
@@ -186,18 +284,33 @@ export default function CrearCancha() {
                     ))
                   )}
                 </select>
+                {valid.horaApertura && (
+                  <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  </span>
+                )}
+                {showErrors && !valid.horaApertura && (
+                  <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                    <span className="inline-flex items-center justify-center w-4 h-4">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                        <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                      </svg>
+                    </span>
+                    <span>Este campo es obligatorio</span>
+                  </div>
+                )}
               </div>
 
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">
-                  HORA CIERRE
-                </span>
+                <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">HORA CIERRE</span>
                 <select
                   name="horaCierre"
                   value={form.horaCierre}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaCierre ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
+                  <option value="">Selecciona</option>
                   {Array.from({ length: 24 }, (_, h) =>
                     ["00", "30"].map((m) => (
                       <option key={`${h}:${m}`} value={`${h.toString().padStart(2, "0")}:${m}`}>
@@ -206,6 +319,22 @@ export default function CrearCancha() {
                     ))
                   )}
                 </select>
+                {valid.horaCierre && (
+                  <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  </span>
+                )}
+                {showErrors && !valid.horaCierre && (
+                  <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                    <span className="inline-flex items-center justify-center w-4 h-4">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                        <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                      </svg>
+                    </span>
+                    <span>Este campo es obligatorio</span>
+                  </div>
+                )}
               </div>
             </div>
 

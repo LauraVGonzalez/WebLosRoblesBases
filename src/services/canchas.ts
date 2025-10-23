@@ -7,9 +7,8 @@ export type CanchaListItem = Cancha & { disciplina?: string };
 
 export const disciplinasSvc = {
   list: async (): Promise<Disciplina[]> => {
-    const rows = await api.get<any[]>("/disciplinas"); // GET /api/disciplinas
+    const rows = await api.get<any[]>("/disciplinas"); 
 
-    // Normaliza claves en mayúsculas/minúsculas y filtra inválidos
     const list: Disciplina[] = (rows ?? [])
       .map((r) => {
         const id =
@@ -40,7 +39,6 @@ export const disciplinasSvc = {
 };
 
 export const canchasSvc = {
-  // Si tu endpoint /api/canchas incluye el nombre de la disciplina, este tipo lo contempla.
   list: (): Promise<CanchaListItem[]> => api.get<CanchaListItem[]>("/canchas"),
 
   get: (id: number): Promise<CanchaListItem> => api.get<CanchaListItem>(`/canchas/${id}`),
