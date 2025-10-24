@@ -42,6 +42,21 @@ export default function CrearCancha() {
     horaCierre: !!form.horaCierre,
   };
 
+  // Validación del rango de horas: apertura debe ser anterior a cierre (misma jornada)
+  const toMinutes = (s?: string | number | null) => {
+    if (s === undefined || s === null) return null;
+    const str = String(s);
+    if (!str.includes(':')) return null;
+    const [hh, mm] = str.split(':').map((x) => Number(x));
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    return hh * 60 + mm;
+  };
+
+  const aperturaMin = toMinutes(form.horaApertura ?? "");
+  const cierreMin = toMinutes(form.horaCierre ?? "");
+  const horaOrdenValida = aperturaMin !== null && cierreMin !== null && aperturaMin < cierreMin;
+  (valid as any).horaOrden = horaOrdenValida;
+
   React.useEffect(() => {
     (async () => {
       try {
@@ -69,7 +84,7 @@ export default function CrearCancha() {
     e.preventDefault();
     setShowErrors(true);
     // Si algún campo no es válido, no enviar
-    if (!valid.nombre || !valid.idDisciplina || !valid.valor || !valid.estado || !valid.horaApertura || !valid.horaCierre) {
+    if (!valid.nombre || !valid.idDisciplina || !valid.valor || !valid.estado || !valid.horaApertura || !valid.horaCierre || !horaOrdenValida) {
       return;
     }
     try {
@@ -271,9 +286,9 @@ export default function CrearCancha() {
                 <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">HORA APERTURA</span>
                 <select
                   name="horaApertura"
-                  value={form.horaApertura}
-                  onChange={handleChange}
-                  className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaApertura ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
+                    value={form.horaApertura}
+                    onChange={handleChange}
+                    className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaApertura && horaOrdenValida ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
                   <option value="">Selecciona</option>
                   {Array.from({ length: 24 }, (_, h) =>
@@ -284,7 +299,7 @@ export default function CrearCancha() {
                     ))
                   )}
                 </select>
-                {valid.horaApertura && (
+                {valid.horaApertura && horaOrdenValida && (
                   <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   </span>
@@ -306,9 +321,9 @@ export default function CrearCancha() {
                 <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">HORA CIERRE</span>
                 <select
                   name="horaCierre"
-                  value={form.horaCierre}
-                  onChange={handleChange}
-                  className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaCierre ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
+                    value={form.horaCierre}
+                    onChange={handleChange}
+                    className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaCierre && horaOrdenValida ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
                   <option value="">Selecciona</option>
                   {Array.from({ length: 24 }, (_, h) =>
@@ -319,7 +334,7 @@ export default function CrearCancha() {
                     ))
                   )}
                 </select>
-                {valid.horaCierre && (
+                {valid.horaCierre && horaOrdenValida && (
                   <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   </span>
@@ -338,7 +353,20 @@ export default function CrearCancha() {
               </div>
             </div>
 
-            {/* Botón */}
+              {/* Mensaje combinado si ambas horas están presentes pero el rango es inválido */}
+              {showErrors && valid.horaApertura && valid.horaCierre && !horaOrdenValida && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>La hora de apertura debe preceder a la hora de cierre</span>
+                </div>
+              )}
+
+              {/* Botón */}
             <div className="mt-2">
               <button
                 type="submit"

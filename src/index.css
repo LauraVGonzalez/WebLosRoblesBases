@@ -1,3 +1,23 @@
 /* src/index.css */
 @import "tailwindcss";
 
+/* Estilos base para placeholders y selects vacíos usando Tailwind theme colors */
+@layer base {
+	input::placeholder,
+	textarea::placeholder {
+		color: theme('colors.zinc.400');
+		opacity: 1; /* asegurar visibilidad */
+	}
+
+	/* Algunos navegadores no soportan placeholder en select; en su lugar
+		 aplicamos color cuando el select tiene value="" (placeholder option) */
+	select[value=""] {
+		color: theme('colors.zinc.400');
+	}
+
+	/* Cuando el select tiene un valor seleccionado diferente de vacío, usar color por defecto */
+	select:not([value=""]) {
+		color: theme('colors.zinc.900');
+	}
+}
+
