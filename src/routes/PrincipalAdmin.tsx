@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import fondo from "../assets/principal.png"; // ⬅️ reemplaza por tu imagen (ej. principal_admin.png)
 
 export default function Principal() {

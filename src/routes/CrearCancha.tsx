@@ -131,7 +131,7 @@ export default function CrearCancha() {
             <p className="text-zinc-500 mb-6 text-center">Se registró la cancha</p>
             <button
               className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg px-6 py-2 shadow"
-              onClick={() => { setShowSuccess(false); nav('/Principal/Canchas'); }}
+              onClick={() => { setShowSuccess(false); nav('/PrincipalAdmin/Canchas'); }}
             >
               Listo
             </button>
