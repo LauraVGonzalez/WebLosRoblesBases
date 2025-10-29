@@ -14,6 +14,8 @@ export default function CrearCancha() {
   const [saving, setSaving] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [disciplinas, setDisciplinas] = React.useState<Disciplina[]>([]);
+  const [existingNames, setExistingNames] = React.useState<string[]>([]);
+  const [nombreExists, setNombreExists] = React.useState(false);
   // Use a local form type so 'valor' can be an empty string (placeholder) and
   // 'estado' can be empty ("Selecciona"). We'll convert to `Cancha` on submit.
   type CanchaForm = Omit<Cancha, "valor" | "estado"> & {
@@ -42,6 +44,21 @@ export default function CrearCancha() {
     horaCierre: !!form.horaCierre,
   };
 
+  // Validación del rango de horas: apertura debe ser anterior a cierre (misma jornada)
+  const toMinutes = (s?: string | number | null) => {
+    if (s === undefined || s === null) return null;
+    const str = String(s);
+    if (!str.includes(':')) return null;
+    const [hh, mm] = str.split(':').map((x) => Number(x));
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    return hh * 60 + mm;
+  };
+
+  const aperturaMin = toMinutes(form.horaApertura ?? "");
+  const cierreMin = toMinutes(form.horaCierre ?? "");
+  const horaOrdenValida = aperturaMin !== null && cierreMin !== null && aperturaMin < cierreMin;
+  (valid as any).horaOrden = horaOrdenValida;
+
   React.useEffect(() => {
     (async () => {
       try {
@@ -53,11 +70,28 @@ export default function CrearCancha() {
     })();
   }, []);
 
+  React.useEffect(() => {
+    // load existing cancha names for duplicate check
+    (async () => {
+      try {
+        const items = await canchasSvc.list();
+        const names = (items ?? []).map((it: any) => String(it.nombre ?? it.NOMBRE ?? "").trim().toLowerCase()).filter(Boolean);
+        setExistingNames(names);
+      } catch {
+        setExistingNames([]);
+      }
+    })();
+  }, []);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     if (name === "valor") setValorTouched(true);
+    if (name === "nombre") {
+      const exists = existingNames.includes(String(value).trim().toLowerCase());
+      setNombreExists(exists);
+    }
     setForm((f) => ({
       ...f,
       // keep 'valor' as string so placeholder works; convert only idDisciplina to number
@@ -69,7 +103,7 @@ export default function CrearCancha() {
     e.preventDefault();
     setShowErrors(true);
     // Si algún campo no es válido, no enviar
-    if (!valid.nombre || !valid.idDisciplina || !valid.valor || !valid.estado || !valid.horaApertura || !valid.horaCierre) {
+    if (!valid.nombre || nombreExists || !valid.idDisciplina || !valid.valor || !valid.estado || !valid.horaApertura || !valid.horaCierre || !horaOrdenValida) {
       return;
     }
     try {
@@ -116,7 +150,7 @@ export default function CrearCancha() {
             <p className="text-zinc-500 mb-6 text-center">Se registró la cancha</p>
             <button
               className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg px-6 py-2 shadow"
-              onClick={() => { setShowSuccess(false); nav('/Principal/Canchas'); }}
+              onClick={() => { setShowSuccess(false); nav('/PrincipalAdmin/Canchas'); }}
             >
               Listo
             </button>
@@ -150,14 +184,33 @@ export default function CrearCancha() {
                 value={form.nombre}
                 onChange={handleChange}
                 placeholder="Stadium name"
-                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.nombre ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
+                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none ${form.nombre.trim() && nombreExists ? 'border-red-500 focus:ring-2 focus:ring-red-500' : (showErrors ? (valid.nombre ? 'border-green-400 focus:ring-2 focus:ring-emerald-500' : 'border-red-400 focus:ring-2 focus:ring-red-500') : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500')}`}
               />
-              {valid.nombre && (
+              {form.nombre.trim() && nombreExists && (
+                <span className="absolute right-3 top-2 text-red-500">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <line x1="6" y1="6" x2="18" y2="18" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="6" y1="18" x2="18" y2="6" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                </span>
+              )}
+              {valid.nombre && !nombreExists && (
                 <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                 </span>
               )}
               {/* Mensaje de error debajo del input */}
+              {form.nombre.trim() && nombreExists && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Este nombre ya está registrado</span>
+                </div>
+              )}
               {showErrors && !valid.nombre && (
                 <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                   <span className="inline-flex items-center justify-center w-4 h-4">
@@ -213,11 +266,20 @@ export default function CrearCancha() {
                 onChange={handleChange}
                 onBlur={() => setValorTouched(true)}
                 placeholder="10000"
-                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${(valorTouched || showErrors) ? (valid.valor ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
+                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none ${(valorTouched || showErrors) ? (valid.valor ? 'border-green-400 focus:ring-2 focus:ring-emerald-500' : 'border-red-500 focus:ring-2 focus:ring-red-500') : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500'}`}
               />
               {valid.valor && (
                 <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {/* X roja cuando el valor contiene caracteres no numéricos */}
+              {(valorTouched || showErrors) && valid.valorSoloNumerosEstricto && (
+                <span className="absolute right-3 top-2 text-red-500">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <line x1="6" y1="6" x2="18" y2="18" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="6" y1="18" x2="18" y2="6" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
                 </span>
               )}
               {(valorTouched || showErrors) && (!valid.valor || valid.valorSoloNumerosEstricto) && (
@@ -228,7 +290,7 @@ export default function CrearCancha() {
                       <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
                     </svg>
                   </span>
-                  <span>{form.valor && valid.valorSoloNumerosEstricto ? "Campo inválido" : "Este campo es obligatorio"}</span>
+                  <span>{form.valor && valid.valorSoloNumerosEstricto ? "El campo solo admite números." : "Este campo es obligatorio"}</span>
                 </div>
               )}
             </div>
@@ -271,9 +333,9 @@ export default function CrearCancha() {
                 <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">HORA APERTURA</span>
                 <select
                   name="horaApertura"
-                  value={form.horaApertura}
-                  onChange={handleChange}
-                  className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaApertura ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
+                    value={form.horaApertura}
+                    onChange={handleChange}
+                    className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaApertura && horaOrdenValida ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
                   <option value="">Selecciona</option>
                   {Array.from({ length: 24 }, (_, h) =>
@@ -284,7 +346,7 @@ export default function CrearCancha() {
                     ))
                   )}
                 </select>
-                {valid.horaApertura && (
+                {valid.horaApertura && horaOrdenValida && (
                   <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   </span>
@@ -306,9 +368,9 @@ export default function CrearCancha() {
                 <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">HORA CIERRE</span>
                 <select
                   name="horaCierre"
-                  value={form.horaCierre}
-                  onChange={handleChange}
-                  className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaCierre ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
+                    value={form.horaCierre}
+                    onChange={handleChange}
+                    className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaCierre && horaOrdenValida ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
                   <option value="">Selecciona</option>
                   {Array.from({ length: 24 }, (_, h) =>
@@ -319,7 +381,7 @@ export default function CrearCancha() {
                     ))
                   )}
                 </select>
-                {valid.horaCierre && (
+                {valid.horaCierre && horaOrdenValida && (
                   <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   </span>
@@ -338,7 +400,20 @@ export default function CrearCancha() {
               </div>
             </div>
 
-            {/* Botón */}
+              {/* Mensaje combinado si ambas horas están presentes pero el rango es inválido */}
+              {showErrors && valid.horaApertura && valid.horaCierre && !horaOrdenValida && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>La hora de apertura debe preceder a la hora de cierre</span>
+                </div>
+              )}
+
+              {/* Botón */}
             <div className="mt-2">
               <button
                 type="submit"

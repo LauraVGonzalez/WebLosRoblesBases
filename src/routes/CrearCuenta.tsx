@@ -43,9 +43,9 @@ export default function CrearCuenta() {
     }
     // Validación visual de correo en tiempo real
     if (e.target.name === "correo") {
-      setShowEmailError(
-        newForm.correo.length > 0 && !newForm.correo.includes("@")
-      );
+      const email = newForm.correo.trim();
+      const emailValid = email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      setShowEmailError(email.length > 0 && !emailValid);
       setShowEmailRegisteredError(false); // Oculta el error si el usuario cambia el correo
     }
     // Validación visual de teléfono en tiempo real
@@ -56,6 +56,12 @@ export default function CrearCuenta() {
     }
   }
 
+  const onlyLetters = (s: string) => {
+    if (!s) return false;
+    // permite letras (mayúsculas/minúsculas), acentos y espacios
+    return /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(s.trim());
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   setError(null);
@@ -64,6 +70,12 @@ export default function CrearCuenta() {
   setShowEmailRegisteredError(false); // Oculta el error al intentar crear cuenta
     // Validación por campo
     if (!form.primerNombre.trim() || !form.primerApellido.trim() || !form.correo.trim() || !form.telefono.trim() || !form.contrasena || !form.confirmarContrasena) {
+      return;
+    }
+    // Validación final de formato de correo antes de enviar
+    const emailTrim = form.correo.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
+      setShowEmailError(true);
       return;
     }
     if (form.contrasena.length < 8) {
@@ -182,13 +194,29 @@ export default function CrearCuenta() {
                 name="primerNombre"
                 value={form.primerNombre}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                className={`w-full rounded-xl px-3 pt-6 pb-2 text-sm outline-none placeholder:text-zinc-400 border ${form.primerNombre.trim() && !onlyLetters(form.primerNombre) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500'}`}
                 placeholder="FirstName"
               />
-              {form.primerNombre.trim() && (
+              {form.primerNombre.trim() && !onlyLetters(form.primerNombre) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#DC3545'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+                </span>
+              )}
+              {form.primerNombre.trim() && onlyLetters(form.primerNombre) && (
                 <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                 </span>
+              )}
+              {form.primerNombre.trim() && !onlyLetters(form.primerNombre) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Solo se permiten letras</span>
+                </div>
               )}
               {showErrors && !form.primerNombre.trim() && (
                 <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
@@ -212,9 +240,30 @@ export default function CrearCuenta() {
                 name="segundoNombre"
                 value={form.segundoNombre}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                className={`w-full rounded-xl px-3 pt-6 pb-2 text-sm outline-none placeholder:text-zinc-400 border ${form.segundoNombre.trim() && !onlyLetters(form.segundoNombre) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500'}`}
                 placeholder="SecondName"
               />
+              {form.segundoNombre.trim() && !onlyLetters(form.segundoNombre) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#DC3545'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+                </span>
+              )}
+              {form.segundoNombre.trim() && onlyLetters(form.segundoNombre) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {form.segundoNombre.trim() && !onlyLetters(form.segundoNombre) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Solo se permiten letras</span>
+                </div>
+              )}
             </div>
 
             {/* PRIMER APELLIDO */}
@@ -226,13 +275,29 @@ export default function CrearCuenta() {
                 name="primerApellido"
                 value={form.primerApellido}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                className={`w-full rounded-xl px-3 pt-6 pb-2 text-sm outline-none placeholder:text-zinc-400 border ${form.primerApellido.trim() && !onlyLetters(form.primerApellido) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500'}`}
                 placeholder="FirstLastName"
               />
-              {form.primerApellido.trim() && (
+              {form.primerApellido.trim() && !onlyLetters(form.primerApellido) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#DC3545'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+                </span>
+              )}
+              {form.primerApellido.trim() && onlyLetters(form.primerApellido) && (
                 <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                 </span>
+              )}
+              {form.primerApellido.trim() && !onlyLetters(form.primerApellido) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Solo se permiten letras</span>
+                </div>
               )}
               {showErrors && !form.primerApellido.trim() && (
                 <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
@@ -256,9 +321,30 @@ export default function CrearCuenta() {
                 name="segundoApellido"
                 value={form.segundoApellido}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                className={`w-full rounded-xl px-3 pt-6 pb-2 text-sm outline-none placeholder:text-zinc-400 border ${form.segundoApellido.trim() && !onlyLetters(form.segundoApellido) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500'}`}
                 placeholder="SecondLastName"
               />
+              {form.segundoApellido.trim() && !onlyLetters(form.segundoApellido) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#DC3545'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+                </span>
+              )}
+              {form.segundoApellido.trim() && onlyLetters(form.segundoApellido) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {form.segundoApellido.trim() && !onlyLetters(form.segundoApellido) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Solo se permiten letras</span>
+                </div>
+              )}
             </div>
 
             {/* CORREO (fila completa) */}
@@ -315,7 +401,7 @@ export default function CrearCuenta() {
                       <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
                     </svg>
                   </span>
-                  <span>Correo invalido</span>
+                  <span>El correo debe tener un formato válido (ejemplo: usuario@dominio.com)</span>
                 </div>
               )}
             </div>

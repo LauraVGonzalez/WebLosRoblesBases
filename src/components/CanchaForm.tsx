@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import type { Cancha, Disciplina } from "../types";
 import { disciplinasSvc } from "../services/canchas";
 import { ESTADOS_CANCHA } from "../constants";
@@ -39,7 +39,7 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
 
   useEffect(() => {
     if (initial) {
-      setV((prev) => ({ ...defaults, ...initial }));
+      setV(() => ({ ...defaults, ...initial }));
     }
   }, [initial]);
 
@@ -67,7 +67,7 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
     };
   }, []);
 
-  const chg = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const chg = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setV((x) => ({
       ...x,

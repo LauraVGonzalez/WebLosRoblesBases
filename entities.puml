@@ -1,0 +1,75 @@
+@startuml
+'Entities extracted from the project for UML / PlantUML
+'Sources: src/types.ts, src/services/canchas.ts, backend/src/routes/canchas.ts, backend/src/routes/usuarios.ts, backend/src/routes/auth.ts
+
+title Entidades - Centro Deportivo Los Robles
+
+entity CANCHAS {
+  * ID_CANCHA : number <<PK>>
+  --
+  NOMBRE : string
+  ID_TIPO_CANCHA : number <<FK>>
+  VALOR : number
+  ESTADO : EstadoCancha
+  HORA_APERTURA : time
+  HORA_CIERRE : time
+}
+
+entity TIPOS_CANCHA {
+  * ID_TIPO_CANCHA : number <<PK>>
+  --
+  NOMBRE : string
+  DESCRIPCION : string
+}
+
+entity CLIENTES {
+  * ID_CLIENTE : number <<PK>>
+  --
+  PRIMER_NOMBRE : string
+  SEGUNDO_NOMBRE : string
+  PRIMER_APELLIDO : string
+  SEGUNDO_APELLIDO : string
+  CORREO : string
+  CELULAR : string
+  ESTADO : string
+}
+
+entity USUARIOS {
+  * ID_USUARIO : number <<PK>>
+  --
+  PRIMER_NOMBRE : string
+  SEGUNDO_NOMBRE : string
+  PRIMER_APELLIDO : string
+  SEGUNDO_APELLIDO : string
+  CORREO : string
+  CONTRASENA : string
+  ID_CLIENTE : number <<FK>>
+  ESTADO : string
+  ES_ADMIN : string
+}
+
+enum EstadoCancha {
+  ACTIVA
+  INACTIVA
+  MANTENIMIENTO
+}
+
+CANCHAS }o--|| TIPOS_CANCHA : ID_TIPO_CANCHA
+USUARIOS }o--|| CLIENTES : ID_CLIENTE
+
+note top of CANCHAS
+  TS type: Cancha
+  Source: src/types.ts, backend/src/routes/canchas.ts
+end note
+
+note top of TIPOS_CANCHA
+  TS type: Disciplina
+  Source: src/types.ts, src/services/canchas.ts
+end note
+
+note top of USUARIOS
+  API endpoints: /api/auth (register/login), /api/usuarios/perfil
+  Source: backend/src/routes/auth.ts, backend/src/routes/usuarios.ts
+end note
+
+@enduml

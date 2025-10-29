@@ -1,6 +1,6 @@
 import fondo from "../assets/info_perfil.png";
 import GroupIconImg from "../assets/GroupIconImg.png";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client";
 
 export default function InfoPerfil() {
