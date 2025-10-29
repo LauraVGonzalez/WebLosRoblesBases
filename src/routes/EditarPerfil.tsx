@@ -50,6 +50,17 @@ export default function EditarPerfil() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const onlyLetters = (s: string) => {
+    if (!s) return false;
+    return /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(s.trim());
+  };
+
+  // helper for email format validation
+  const emailIsValid = (s: string) => {
+    if (!s) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+  };
+
   const minPasswordLength = 8;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,9 +71,9 @@ export default function EditarPerfil() {
     if (!form.primerNombre.trim() || !form.primerApellido.trim() || !form.correo.trim() || !form.telefono.trim()) {
       return;
     }
-    // Validación simple de formato de correo: debe contener @
-    if (form.correo.trim() && !form.correo.includes("@")) {
-      setError("Correo inválido");
+    // Validación simple de formato de correo
+    if (form.correo.trim() && !emailIsValid(form.correo)) {
+      setError("El correo debe tener un formato válido (ejemplo: usuario@dominio.com)");
       return;
     }
     // Validación de teléfono: solo dígitos
@@ -146,9 +157,30 @@ export default function EditarPerfil() {
                 name="primerNombre"
                 value={form.primerNombre}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                className={`w-full rounded-xl px-3 pt-6 pb-2 text-sm outline-none placeholder:text-zinc-400 border ${form.primerNombre.trim() && !onlyLetters(form.primerNombre) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500'}`}
                 placeholder="FirstName"
               />
+              {form.primerNombre.trim() && !onlyLetters(form.primerNombre) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#DC3545'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+                </span>
+              )}
+              {form.primerNombre.trim() && onlyLetters(form.primerNombre) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {form.primerNombre.trim() && !onlyLetters(form.primerNombre) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Solo se permiten letras</span>
+                </div>
+              )}
               {showErrors && !form.primerNombre.trim() && (
                 <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                   <span className="inline-flex items-center justify-center w-4 h-4">
@@ -169,9 +201,30 @@ export default function EditarPerfil() {
                 name="segundoNombre"
                 value={form.segundoNombre}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                className={`w-full rounded-xl px-3 pt-6 pb-2 text-sm outline-none placeholder:text-zinc-400 border ${form.segundoNombre.trim() && !onlyLetters(form.segundoNombre) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500'}`}
                 placeholder="SecondName"
               />
+              {form.segundoNombre.trim() && !onlyLetters(form.segundoNombre) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#DC3545'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+                </span>
+              )}
+              {form.segundoNombre.trim() && onlyLetters(form.segundoNombre) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {form.segundoNombre.trim() && !onlyLetters(form.segundoNombre) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Solo se permiten letras</span>
+                </div>
+              )}
             </div>
             <div className="relative">
               <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">
@@ -181,9 +234,30 @@ export default function EditarPerfil() {
                 name="primerApellido"
                 value={form.primerApellido}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                className={`w-full rounded-xl px-3 pt-6 pb-2 text-sm outline-none placeholder:text-zinc-400 border ${form.primerApellido.trim() && !onlyLetters(form.primerApellido) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500'}`}
                 placeholder="FirstLastName"
               />
+              {form.primerApellido.trim() && !onlyLetters(form.primerApellido) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#DC3545'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+                </span>
+              )}
+              {form.primerApellido.trim() && onlyLetters(form.primerApellido) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {form.primerApellido.trim() && !onlyLetters(form.primerApellido) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Solo se permiten letras</span>
+                </div>
+              )}
               {showErrors && !form.primerApellido.trim() && (
                 <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                   <span className="inline-flex items-center justify-center w-4 h-4">
@@ -204,28 +278,49 @@ export default function EditarPerfil() {
                 name="segundoApellido"
                 value={form.segundoApellido}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-zinc-300 px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                className={`w-full rounded-xl px-3 pt-6 pb-2 text-sm outline-none placeholder:text-zinc-400 border ${form.segundoApellido.trim() && !onlyLetters(form.segundoApellido) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500'}`}
                 placeholder="SecondLastName"
               />
+              {form.segundoApellido.trim() && !onlyLetters(form.segundoApellido) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#DC3545'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+                </span>
+              )}
+              {form.segundoApellido.trim() && onlyLetters(form.segundoApellido) && (
+                <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {form.segundoApellido.trim() && !onlyLetters(form.segundoApellido) && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <span className="inline-flex items-center justify-center w-4 h-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                    </svg>
+                  </span>
+                  <span>Solo se permiten letras</span>
+                </div>
+              )}
             </div>
             <div className="relative md:col-span-2">
               <span className="pointer-events-none absolute left-3 top-1.5 text-[11px] font-semibold text-zinc-500">
                 CORREO ELECTRÓNICO *
               </span>
-              <input
-                name="correo"
-                value={form.correo}
-                onChange={handleChange}
-                readOnly
-                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm text-zinc-500 outline-none focus:ring-2 placeholder:text-zinc-400 cursor-not-allowed ${form.correo.trim() && !form.correo.includes('@') ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-emerald-500 opacity-90'}`}
-                placeholder="example@mail.com"
-              />
-              {/* X roja a la derecha si correo inválido */}
-              {form.correo.trim() && !form.correo.includes('@') && (
-                <svg className="absolute right-3 top-3 w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                  <path d="M6 6L18 18M6 18L18 6" stroke="#dc3545" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
+                <input
+                  name="correo"
+                  value={form.correo}
+                  onChange={handleChange}
+                  readOnly
+                  className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm text-zinc-500 outline-none focus:ring-2 placeholder:text-zinc-400 cursor-not-allowed ${form.correo.trim() && !emailIsValid(form.correo) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-emerald-500 opacity-90'}`}
+                  placeholder="example@mail.com"
+                />
+                {/* X roja a la derecha si correo inválido */}
+                {form.correo.trim() && !emailIsValid(form.correo) && (
+                  <svg className="absolute right-3 top-3 w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M6 6L18 18M6 18L18 6" stroke="#dc3545" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
                 {showErrors && !form.correo.trim() && (
                 <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                   <span className="inline-flex items-center justify-center w-4 h-4">
@@ -246,7 +341,7 @@ export default function EditarPerfil() {
                       <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
                     </svg>
                   </span>
-                  <span>Correo inválido</span>
+                  <span>El correo debe tener un formato válido (ejemplo: usuario@dominio.com)</span>
                 </div>
               )}
             </div>

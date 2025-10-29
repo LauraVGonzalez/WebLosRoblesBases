@@ -19,6 +19,11 @@ export default function InicioSesion() {
   const navigate = useNavigate();
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const emailIsValid = (s: string) => {
+    if (!s) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+  };
+
   // Obtener lista de correos registrados al montar el componente
   useEffect(() => {
     async function fetchUsuarios() {
@@ -44,7 +49,8 @@ export default function InicioSesion() {
       setLoading(false);
       return;
     }
-    if (!correo.includes("@")) {
+    if (!emailIsValid(correo)) {
+      setCorreoInvalido(true);
       setLoading(false);
       return;
     }
@@ -155,7 +161,7 @@ export default function InicioSesion() {
                   onChange={e => {
                     setCorreo(e.target.value);
                     if (correoNoRegistrado) setCorreoNoRegistrado(false);
-                    setCorreoInvalido(e.target.value.trim() !== "" && !e.target.value.includes("@"));
+                      setCorreoInvalido(e.target.value.trim() !== "" && !emailIsValid(e.target.value));
                   }}
                 />
                 {/* Icono de validación correo */}
@@ -210,7 +216,7 @@ export default function InicioSesion() {
                       <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
                     </svg>
                   </span>
-                  <span>Correo invalido</span>
+                  <span>El correo debe tener un formato válido (ejemplo: usuario@dominio.com)</span>
                 </div>
               )}
             </div>

@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import fondo from "../assets/editar_cancha.png"; // puedes usar otra imagen si deseas
 import { canchasSvc } from "../services/canchas";
+import type { CanchaListItem } from "../services/canchas";
 import { disciplinasSvc } from "../services/canchas";
 import type { Cancha, Disciplina } from "../types";
 
@@ -13,6 +14,7 @@ export default function EditarCancha() {
   const [loading, setLoading] = React.useState(true);
   const [disciplinas, setDisciplinas] = React.useState<Disciplina[]>([]);
   const [err, setErr] = React.useState<string | null>(null);
+  const [existingCanchas, setExistingCanchas] = React.useState<CanchaListItem[]>([]);
 
   const [showErrors, setShowErrors] = React.useState(false);
   const [showSuccess, setShowSuccess] = React.useState(false);
@@ -81,7 +83,7 @@ export default function EditarCancha() {
               <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
             </svg>
           </span>
-          <span>Campo inválido</span>
+          <span>El campo solo admite números.</span>
         </div>
       );
     }
@@ -104,9 +106,10 @@ export default function EditarCancha() {
   React.useEffect(() => {
     (async () => {
       try {
-        const [rawC, d] = await Promise.all([
+        const [rawC, d, list] = await Promise.all([
           canchasSvc.get(Number(id)),
           disciplinasSvc.list(),
+          canchasSvc.list(),
         ]);
         console.debug("EditarCancha: raw cancha:", rawC);
 
@@ -126,6 +129,7 @@ export default function EditarCancha() {
 
         setForm(normalized);
         setDisciplinas(d);
+        setExistingCanchas(list ?? []);
       } catch (e: any) {
         setErr(e?.message ?? "Error cargando la cancha");
       } finally {
@@ -158,6 +162,13 @@ export default function EditarCancha() {
     if (!form) return;
     // Mostrar errores y bloquear envío si algún campo requerido está vacío/ inválido
     setShowErrors(true);
+    // duplicate name check (exclude current cancha id)
+    const nombreActual = String(form.nombre ?? "").trim().toLowerCase();
+    const nombreDuplicado = (existingCanchas ?? []).some(c => String((c as any).nombre ?? "").trim().toLowerCase() === nombreActual && Number((c as any).id) !== Number(form.id));
+    if (nombreDuplicado) {
+      return;
+    }
+
     if (!valid.nombre || !valid.idDisciplina || !valid.valor || !valid.estado || !valid.horaApertura || !valid.horaCierre || !horaOrdenValida) {
       return;
     }
@@ -217,14 +228,26 @@ export default function EditarCancha() {
                 value={form?.nombre ?? ""}
                 onChange={handleChange}
                 placeholder="Stadium name"
-                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.nombre ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
+                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none ${form?.nombre && form.nombre.toString().trim() && (existingCanchas ?? []).some(c => String((c as any).nombre ?? "").trim().toLowerCase() === String(form?.nombre ?? "").trim().toLowerCase() && Number((c as any).id) !== Number(form?.id)) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : (showErrors ? (valid.nombre ? 'border-green-400 focus:ring-2 focus:ring-emerald-500' : 'border-red-400 focus:ring-2 focus:ring-red-500') : 'border-zinc-300')}`}
               />
-              {showErrors && valid.nombre && (
+                {showErrors && valid.nombre && !((existingCanchas ?? []).some(c => String((c as any).nombre ?? "").trim().toLowerCase() === String(form?.nombre ?? "").trim().toLowerCase() && Number((c as any).id) !== Number(form?.id))) && (
                 <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                 </span>
               )}
-              {showErrors && !valid.nombre && (
+                {/* duplicate name message */}
+                {form?.nombre && String(form.nombre).trim() && (existingCanchas ?? []).some(c => String((c as any).nombre ?? "").trim().toLowerCase() === String(form?.nombre ?? "").trim().toLowerCase() && Number((c as any).id) !== Number(form?.id)) && (
+                  <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                    <span className="inline-flex items-center justify-center w-4 h-4">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" fill="#DC3545" />
+                        <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#fff" fontFamily="Arial">i</text>
+                      </svg>
+                    </span>
+                    <span>Este nombre ya está registrado</span>
+                  </div>
+                )}
+                {showErrors && !valid.nombre && (
                 <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                   <span className="inline-flex items-center justify-center w-4 h-4">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -285,13 +308,20 @@ export default function EditarCancha() {
                 onChange={handleChange}
                 
                 placeholder="100000"
-                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors
-                  ? (valorValido ? 'border-green-400' : 'border-red-400')
-                  : 'border-zinc-300'}`}
+                className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none ${(showErrors ? (valorValido ? 'border-green-400 focus:ring-2 focus:ring-emerald-500' : 'border-red-500 focus:ring-2 focus:ring-red-500') : 'border-zinc-300 focus:ring-2 focus:ring-emerald-500')}`}
               />
               {showErrors && valid.valor && (
                 <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+              )}
+              {/* X roja cuando el valor contiene caracteres no numéricos */}
+              {showErrors && valorSoloNumerosEstricto && (
+                <span className="absolute right-3 top-2 text-red-500">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <line x1="6" y1="6" x2="18" y2="18" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="6" y1="18" x2="18" y2="6" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
                 </span>
               )}
               {valorError}
