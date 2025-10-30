@@ -59,6 +59,7 @@ export default function InicioSesion() {
       if (res.ok) {
         setShowSuccess(true);
         localStorage.setItem("usuario_correo", correo);
+        if (res.id_usuario) localStorage.setItem('id_usuario', String(res.id_usuario));
         setTimeout(() => {
           setShowSuccess(false);
           if (correo.includes("@losrobles.com")) {
