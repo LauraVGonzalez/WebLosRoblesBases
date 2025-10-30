@@ -41,7 +41,6 @@ const router = createBrowserRouter([
   { path: "PrincipalAdmin/Reservas", element: <Reservas /> },
   { path: "PrincipalAdmin/InfoPerfil", element: <InfoPerfil /> },     // http://localhost:5173/PrincipalAdmin/InfoPerfil
   { path: "PrincipalAdmin/InfoPerfil/EditarPerfil", element: <EditarPerfil /> }, // http://localhost:5173/PrincipalAdmin/InfoPerfil/EditarPerfil
-  { path: "PrincipalAdmin/ReservaYA", element: <ReservaYa /> },
     ],
   },
 ]);
