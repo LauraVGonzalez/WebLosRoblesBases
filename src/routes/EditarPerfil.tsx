@@ -358,12 +358,17 @@ export default function EditarPerfil() {
                   className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 placeholder:text-zinc-400 ${form.telefono.trim() && !/^[0-9]+$/.test(form.telefono.trim()) ? 'border-red-500 focus:ring-2 focus:ring-red-500' : 'border-zinc-300 focus:ring-emerald-500'}`}
                   placeholder="3000000000"
                 />
-                {/* X roja a la derecha si teléfono inválido */}
-                {form.telefono.trim() && !/^[0-9]+$/.test(form.telefono.trim()) && (
-                  <svg className="absolute right-3 top-3 w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                    <path d="M6 6L18 18M6 18L18 6" stroke="#dc3545" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
+                  {/* Mostrar chulito verde cuando hay texto y sólo dígitos; X roja cuando hay texto y contiene no dígitos */}
+                  {form.telefono.trim() && /^[0-9]+$/.test(form.telefono.trim()) && (
+                    <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    </span>
+                  )}
+                  {form.telefono.trim() && !/^[0-9]+$/.test(form.telefono.trim()) && (
+                    <svg className="absolute right-3 top-3 w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                      <path d="M6 6L18 18M6 18L18 6" stroke="#dc3545" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
                 {showErrors && !form.telefono.trim() && (
                   <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                     <span className="inline-flex items-center justify-center w-4 h-4">
