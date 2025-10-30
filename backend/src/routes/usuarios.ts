@@ -83,7 +83,7 @@ router.get("/perfil", async (req, res) => {
   try {
     // Busca en la tabla usuarios por correo
     const result = await dbExecute(
-      `SELECT U.PRIMER_NOMBRE, U.SEGUNDO_NOMBRE, U.PRIMER_APELLIDO, U.SEGUNDO_APELLIDO, U.CORREO, U.CONTRASENA, C.CELULAR
+      `SELECT U.ID_USUARIO, U.ID_CLIENTE, U.PRIMER_NOMBRE, U.SEGUNDO_NOMBRE, U.PRIMER_APELLIDO, U.SEGUNDO_APELLIDO, U.CORREO, U.CONTRASENA, C.CELULAR
        FROM USUARIOS U
        LEFT JOIN CLIENTES C ON U.ID_CLIENTE = C.ID_CLIENTE
        WHERE U.CORREO = :correo`,
@@ -95,6 +95,8 @@ router.get("/perfil", async (req, res) => {
     }
     const u = rows[0] as any;
     res.json({
+      id_usuario: u.ID_USUARIO,
+      id_cliente: u.ID_CLIENTE,
       nombres: [u.PRIMER_NOMBRE, u.SEGUNDO_NOMBRE].filter(Boolean).join(" "),
       apellidos: [u.PRIMER_APELLIDO, u.SEGUNDO_APELLIDO].filter(Boolean).join(" "),
       correo: u.CORREO,

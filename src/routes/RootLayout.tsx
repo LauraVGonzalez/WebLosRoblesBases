@@ -141,9 +141,6 @@ export default function RootLayout() {
                   <NavLink to="/PrincipalAdmin/Canchas/Crear" className="text-white font-semibold text-sm hover:text-emerald-700 transition">CREAR CANCHA</NavLink>
                   <NavLink to="/PrincipalAdmin/Reservas" className="text-white font-semibold text-sm hover:text-emerald-700 transition">RESERVAS</NavLink>
                   <div className="flex items-center gap-2">
-                    <NavLink to="/PrincipalAdmin/ReservaYA" className="rounded-full bg-white/10 px-3 py-1 text-white font-semibold hover:bg-white/20">
-                      RESERVA YA!
-                    </NavLink>
                     <span className="bg-white rounded-full flex items-center justify-center w-9 h-9 shadow cursor-pointer" onClick={() => nav('/PrincipalAdmin/InfoPerfil')}>
                       <img src={groupIcon} alt="icono reserva" className="w-6 h-6" />
                     </span>

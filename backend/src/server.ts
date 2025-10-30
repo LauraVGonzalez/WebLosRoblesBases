@@ -6,6 +6,7 @@ import disciplinasRouter from "./routes/disciplinas";
 import canchasRouter from "./routes/canchas";
 import authRouter from "./routes/auth";
 import usuariosRouter from "./routes/usuarios";
+import reservaRouter from "./routes/reserva";
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use("/api/disciplinas", disciplinasRouter);
 app.use("/api/canchas", canchasRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/usuarios", usuariosRouter);
+app.use("/api/reservas", reservaRouter);
 
 // Healthcheck DB
 app.get("/test-db", async (_req, res) => {
