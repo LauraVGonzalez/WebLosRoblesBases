@@ -102,7 +102,7 @@ export default function InicioSesion() {
         }
       }
     } catch (err: any) {
-      let msg = err.message || "Error de red";
+      const msg = err.message || "Error de red";
       try {
         const parsed = JSON.parse(msg);
         if (parsed.error) {

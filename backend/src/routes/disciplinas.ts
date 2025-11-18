@@ -19,7 +19,7 @@ router.get("/", async (_req, res, next) => {
         ID_TIPO_CANCHA AS "id",
         NOMBRE         AS "nombre",
         DESCRIPCION    AS "descripcion"
-      FROM TIPOS_CANCHA
+      FROM TBL_TIPO_CANCHA
       ORDER BY NOMBRE
       `
     );

@@ -46,63 +46,58 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: 'El número telefónico no puede estar vacío.' });
     }
     console.log(`[DEBUG] Valor insertado en CELULAR: '${celValue}'`);
+    // 1) Insertar en TBL_USUARIO y obtener ID_USUARIO generado
     const sqlParams = {
       pn: primer_nombre,
       sn: segundo_nombre,
       pa: primer_apellido,
       sa: saValue,
       co: correo,
-      cel: celValue,
+      hash,
       id_out: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
     };
-    console.log('[DEBUG] Parámetros SQL INSERT CLIENTES:', sqlParams);
-    console.log('[DEBUG] Tipos de parámetros:', {
-      pn: typeof sqlParams.pn,
-      sn: typeof sqlParams.sn,
-      pa: typeof sqlParams.pa,
-      sa: typeof sqlParams.sa,
-      co: typeof sqlParams.co,
-      cel: typeof sqlParams.cel
-    });
-    console.log('[DEBUG] SQL ejecutado:',
-      `INSERT INTO clientes (primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo, celular, estado)` +
-      ` VALUES (:pn, :sn, :pa, :sa, :co, :cel, 'activo') RETURNING id_cliente INTO :id_out`
-    );
-    let cRes;
+
+    console.log('[DEBUG] Parámetros SQL INSERT TBL_USUARIO:', sqlParams);
+    let uRes;
     try {
-      cRes = await dbExecute<{ ID_CLIENTE: number }>(
-        `INSERT INTO clientes (primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo, celular, estado)
-         VALUES (:pn, :sn, :pa, :sa, :co, :cel, 'activo')
-         RETURNING id_cliente INTO :id_out`,
+      uRes = await dbExecute(
+        `INSERT INTO TBL_USUARIO (PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO, CONTRASENA, ESTADO)
+         VALUES (:pn, :sn, :pa, :sa, :co, :hash, 'activo')
+         RETURNING ID_USUARIO INTO :id_out`,
         sqlParams
       );
-      console.log('[DEBUG] Resultado INSERT CLIENTES:', cRes);
-      console.log('[DEBUG] outBinds:', cRes.outBinds);
+      console.log('[DEBUG] Resultado INSERT TBL_USUARIO:', uRes.outBinds);
     } catch (err) {
-      console.error('[ERROR] Fallo INSERT CLIENTES:', err);
+      console.error('[ERROR] Fallo INSERT TBL_USUARIO:', err);
       throw err;
     }
-    const idCliente = (cRes.outBinds as any).id_out[0];
 
-    // 2) Crear usuario vinculado al cliente
-  const esAdmin = correo.includes("@losrobles.com") ? 'S' : 'N';
-  console.log(`[DEBUG] Valor de esAdmin para el usuario: '${esAdmin}' (correo: ${correo})`);
-    await dbExecute(
-      `INSERT INTO usuarios (primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo, contrasena, id_cliente, estado, es_admin)
-       VALUES (:pn, :sn, :pa, :sa, :co, :hash, :idc, 'activo', :esAdmin)`,
-      {
-        pn: primer_nombre,
-        sn: segundo_nombre,
-        pa: primer_apellido,
-        sa: saValue,
-        co: correo,
-        hash,
-        idc: idCliente,
-        esAdmin
+    const idUsuario = (uRes.outBinds as any).id_out[0];
+
+    // 2) Insertar en TBL_CLIENTE con el ID_USUARIO generado
+    try {
+      await dbExecute(
+        `INSERT INTO TBL_CLIENTE (ID_USUARIO, CELULAR, FECHA_CREACION)
+         VALUES (:idu, :cel, SYSDATE)`,
+        { idu: idUsuario, cel: celValue }
+      );
+    } catch (err) {
+      console.error('[ERROR] Fallo INSERT TBL_CLIENTE:', err);
+      throw err;
+    }
+
+    // 3) Si es administrador (dominio interno), insertar en TBL_ADMINISTRADOR
+    const isAdmin = correo.includes("@losrobles.com");
+    if (isAdmin) {
+      try {
+        await dbExecute(`INSERT INTO TBL_ADMINISTRADOR (ID_USUARIO, FECHA_INICIO) VALUES (:idu, SYSDATE)`, { idu: idUsuario });
+      } catch (err) {
+        console.error('[WARN] No se pudo insertar en TBL_ADMINISTRADOR:', err);
+        // no detener el registro por fallo al crear administrador
       }
-    );
+    }
 
-    res.status(201).json({ ok: true, idCliente });
+    res.status(201).json({ ok: true, idCliente: idUsuario });
   } catch (e: any) {
     if (e.errorNum === 1) return res.status(409).json({ error: "Correo ya registrado" }); // UNIQUE
     console.error(e);
@@ -115,16 +110,19 @@ router.post("/login", async (req, res) => {
   const { correo, password } = req.body;
   try {
     const r = await dbExecute<any>(
-      `SELECT id_usuario, contrasena FROM usuarios WHERE correo = :c`,
+      `SELECT ID_USUARIO, CONTRASENA FROM TBL_USUARIO WHERE CORREO = :c`,
       { c: correo }
     );
     const row = r.rows?.[0];
   if (!row) return res.status(401).json({ error: "El correo electronico no se encuentra registrado." });
 
-    const ok = await bcrypt.compare(password, row.CONTRASENA);
+    const hash = Array.isArray(row) ? row[1] : row.CONTRASENA;
+    const idUsuario = Array.isArray(row) ? row[0] : row.ID_USUARIO;
+
+    const ok = await bcrypt.compare(password, hash);
     if (!ok) return res.status(401).json({ error: "Credenciales inválidas" });
 
-    res.json({ ok: true, id_usuario: row.ID_USUARIO });
+    res.json({ ok: true, id_usuario: idUsuario });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Error de servidor" });

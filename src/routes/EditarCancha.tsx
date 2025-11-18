@@ -14,6 +14,7 @@ export default function EditarCancha() {
   const [loading, setLoading] = React.useState(true);
   const [disciplinas, setDisciplinas] = React.useState<Disciplina[]>([]);
   const [err, setErr] = React.useState<string | null>(null);
+  const [backendHoraOrdenError, setBackendHoraOrdenError] = React.useState(false);
   const [existingCanchas, setExistingCanchas] = React.useState<CanchaListItem[]>([]);
 
   const [showErrors, setShowErrors] = React.useState(false);
@@ -155,6 +156,7 @@ export default function EditarCancha() {
           }
         : f
     );
+    if (name === 'horaApertura' || name === 'horaCierre') setBackendHoraOrdenError(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,19 +174,27 @@ export default function EditarCancha() {
     if (!valid.nombre || !valid.idDisciplina || !valid.valor || !valid.estado || !valid.horaApertura || !valid.horaCierre || !horaOrdenValida) {
       return;
     }
-    try {
-      setSaving(true);
-      await canchasSvc.update(Number(id), {
-        ...form,
-        valor: Number(form.valor),
-      });
-      // Mostrar modal de éxito en lugar de alert
-      setShowSuccess(true);
-    } catch (e: any) {
-      setErr(e?.message ?? "Error actualizando la cancha");
-    } finally {
-      setSaving(false);
-    }
+      try {
+        setSaving(true);
+        await canchasSvc.update(Number(id), {
+          ...form,
+          valor: Number(form.valor),
+        });
+        // Mostrar modal de éxito en lugar de alert
+        setShowSuccess(true);
+      } catch (e: any) {
+        let msg = e?.message ?? String(e || 'Error actualizando la cancha');
+        try { const parsed = JSON.parse(msg); msg = parsed?.error ?? parsed?.message ?? msg; } catch (_) {}
+        const _m = String(msg || '').toLowerCase();
+        if (_m.includes('apertura') && _m.includes('cierre')) {
+          setBackendHoraOrdenError(true);
+          setErr(null);
+        } else {
+          setErr(msg);
+        }
+      } finally {
+        setSaving(false);
+      }
   };
 
   if (loading) return <div className="p-10 text-center">Cargando...</div>;
@@ -374,23 +384,24 @@ export default function EditarCancha() {
                       className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaApertura && horaOrdenValida ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
                     <option value="">Selecciona</option>
-                  {Array.from({ length: 24 }, (_, h) =>
-                    ["00", "30"].map((m) => (
-                      <option
-                        key={`${h}:${m}`}
-                        value={`${h.toString().padStart(2, "0")}:${m}`}
-                      >
-                        {`${h.toString().padStart(2, "0")}:${m}`}
-                      </option>
-                    ))
-                  ).flat()}
+                  {(() => {
+                    const opts: JSX.Element[] = [];
+                    for (let h = 5; h <= 22; h++) {
+                      const hh = h.toString().padStart(2, "0");
+                      opts.push(<option key={`${hh}:00`} value={`${hh}:00`}>{`${hh}:00`}</option>);
+                    }
+                    return opts;
+                  })()}
                 </select>
-                  {showErrors && valid.horaApertura && horaOrdenValida && (
-                    <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                    </span>
-                  )}
-                  {showErrors && !valid.horaApertura && (
+                {showErrors && (!valid.horaApertura || !horaOrdenValida || backendHoraOrdenError) && (
+                  <span className="absolute right-3 top-2 text-red-500">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <line x1="6" y1="6" x2="18" y2="18" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                      <line x1="6" y1="18" x2="18" y2="6" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                )}
+                {showErrors && !valid.horaApertura && (
                     <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                       <span className="inline-flex items-center justify-center w-4 h-4">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -414,23 +425,24 @@ export default function EditarCancha() {
                     className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaCierre && horaOrdenValida ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
                     <option value="">Selecciona</option>
-                  {Array.from({ length: 24 }, (_, h) =>
-                    ["00", "30"].map((m) => (
-                      <option
-                        key={`${h}:${m}`}
-                        value={`${h.toString().padStart(2, "0")}:${m}`}
-                      >
-                        {`${h.toString().padStart(2, "0")}:${m}`}
-                      </option>
-                    ))
-                  ).flat()}
+                  {(() => {
+                    const opts: JSX.Element[] = [];
+                    for (let h = 5; h <= 22; h++) {
+                      const hh = h.toString().padStart(2, "0");
+                      opts.push(<option key={`${hh}:00`} value={`${hh}:00`}>{`${hh}:00`}</option>);
+                    }
+                    return opts;
+                  })()}
                 </select>
-                  {showErrors && valid.horaCierre && horaOrdenValida && (
-                    <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                    </span>
-                  )}
-                  {showErrors && !valid.horaCierre && (
+                {showErrors && (!valid.horaCierre || !horaOrdenValida || backendHoraOrdenError) && (
+                  <span className="absolute right-3 top-2 text-red-500">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <line x1="6" y1="6" x2="18" y2="18" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                      <line x1="6" y1="18" x2="18" y2="6" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                )}
+                {showErrors && !valid.horaCierre && (
                     <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                       <span className="inline-flex items-center justify-center w-4 h-4">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -445,7 +457,7 @@ export default function EditarCancha() {
             </div>
 
             {/* Mensaje combinado si ambas horas están presentes pero el rango es inválido */}
-            {showErrors && valid.horaApertura && valid.horaCierre && !horaOrdenValida && (
+            {showErrors && valid.horaApertura && valid.horaCierre && (!horaOrdenValida || backendHoraOrdenError) && (
               <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                 <span className="inline-flex items-center justify-center w-4 h-4">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

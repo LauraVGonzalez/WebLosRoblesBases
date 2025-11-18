@@ -19,11 +19,12 @@ export default function InfoPerfil() {
       try {
         // Suponiendo que el backend tiene un endpoint /api/usuarios/perfil?correo=...
         const res = await api.get<any>(`/usuarios/perfil?correo=${encodeURIComponent(correoUsuario)}`);
+        console.log('[UI] /api/usuarios/perfil response:', res);
         setUsuario({
           nombres: res.nombres || "",
           apellidos: res.apellidos || "",
           correo: res.correo || correoUsuario,
-          telefono: res.telefono || ""
+          telefono: res.telefono || res.celular || res.CELULAR || ""
         });
         setError("");
       } catch (e) {

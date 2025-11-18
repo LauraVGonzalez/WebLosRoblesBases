@@ -13,6 +13,7 @@ export default function CrearCancha() {
   const nav = useNavigate();
   const [saving, setSaving] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
+  const [backendHoraOrdenError, setBackendHoraOrdenError] = React.useState(false);
   const [disciplinas, setDisciplinas] = React.useState<Disciplina[]>([]);
   const [existingNames, setExistingNames] = React.useState<string[]>([]);
   const [nombreExists, setNombreExists] = React.useState(false);
@@ -97,6 +98,8 @@ export default function CrearCancha() {
       // keep 'valor' as string so placeholder works; convert only idDisciplina to number
       [name]: name === "idDisciplina" ? Number(value) : value,
     }));
+    // clear backend hora-order error when the user edits hours
+    if (name === 'horaApertura' || name === 'horaCierre') setBackendHoraOrdenError(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,7 +124,21 @@ export default function CrearCancha() {
       await canchasSvc.create(payload);
       setShowSuccess(true);
     } catch (e: any) {
-      setErr(e?.message ?? "Error al crear la cancha");
+      // try to parse backend JSON error { error: '...' }
+      let msg = e?.message ?? String(e || 'Error al crear la cancha');
+      try {
+        const parsed = JSON.parse(msg);
+        msg = parsed?.error ?? parsed?.message ?? msg;
+      } catch (_) {}
+
+      // if backend indicates hora orden problem, surface it inline under the horarios
+      const _m = String(msg || '').toLowerCase();
+      if (_m.includes('apertura') && _m.includes('cierre')) {
+        setBackendHoraOrdenError(true);
+        setErr(null);
+      } else {
+        setErr(msg);
+      }
     } finally {
       setSaving(false);
     }
@@ -338,17 +355,21 @@ export default function CrearCancha() {
                     className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaApertura && horaOrdenValida ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
                   <option value="">Selecciona</option>
-                  {Array.from({ length: 24 }, (_, h) =>
-                    ["00", "30"].map((m) => (
-                      <option key={`${h}:${m}`} value={`${h.toString().padStart(2, "0")}:${m}`}>
-                        {`${h.toString().padStart(2, "0")}:${m}`}
-                      </option>
-                    ))
-                  )}
+                  {(() => {
+                    const opts: JSX.Element[] = [];
+                    for (let h = 5; h <= 22; h++) {
+                      const hh = h.toString().padStart(2, "0");
+                      opts.push(<option key={`${hh}:00`} value={`${hh}:00`}>{`${hh}:00`}</option>);
+                    }
+                    return opts;
+                  })()}
                 </select>
-                {valid.horaApertura && horaOrdenValida && (
-                  <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                {showErrors && (!valid.horaApertura || !horaOrdenValida || backendHoraOrdenError) && (
+                  <span className="absolute right-3 top-2 text-red-500">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <line x1="6" y1="6" x2="18" y2="18" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                      <line x1="6" y1="18" x2="18" y2="6" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
                   </span>
                 )}
                 {showErrors && !valid.horaApertura && (
@@ -373,17 +394,21 @@ export default function CrearCancha() {
                     className={`w-full rounded-xl border px-3 pt-6 pb-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 ${showErrors ? (valid.horaCierre && horaOrdenValida ? 'border-green-400' : 'border-red-400') : 'border-zinc-300'}`}
                 >
                   <option value="">Selecciona</option>
-                  {Array.from({ length: 24 }, (_, h) =>
-                    ["00", "30"].map((m) => (
-                      <option key={`${h}:${m}`} value={`${h.toString().padStart(2, "0")}:${m}`}>
-                        {`${h.toString().padStart(2, "0")}:${m}`}
-                      </option>
-                    ))
-                  )}
+                  {(() => {
+                    const opts: JSX.Element[] = [];
+                    for (let h = 5; h <= 22; h++) {
+                      const hh = h.toString().padStart(2, "0");
+                      opts.push(<option key={`${hh}:00`} value={`${hh}:00`}>{`${hh}:00`}</option>);
+                    }
+                    return opts;
+                  })()}
                 </select>
-                {valid.horaCierre && horaOrdenValida && (
-                  <span className="absolute right-3 top-2 text-lg" style={{color: '#22c55e'}}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                {showErrors && (!valid.horaCierre || !horaOrdenValida || backendHoraOrdenError) && (
+                  <span className="absolute right-3 top-2 text-red-500">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <line x1="6" y1="6" x2="18" y2="18" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                      <line x1="6" y1="18" x2="18" y2="6" stroke="#DC3545" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
                   </span>
                 )}
                 {showErrors && !valid.horaCierre && (
@@ -401,7 +426,7 @@ export default function CrearCancha() {
             </div>
 
               {/* Mensaje combinado si ambas horas están presentes pero el rango es inválido */}
-              {showErrors && valid.horaApertura && valid.horaCierre && !horaOrdenValida && (
+              {((showErrors && valid.horaApertura && valid.horaCierre && !horaOrdenValida) || backendHoraOrdenError) && (
                 <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                   <span className="inline-flex items-center justify-center w-4 h-4">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

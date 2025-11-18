@@ -12,6 +12,17 @@ function assertEstado(v: any): asserts v is EstadoCancha {
   }
 }
 
+function toMinutes(hhmm: string): number {
+  if (!hhmm || typeof hhmm !== 'string') return NaN;
+  const m = hhmm.trim();
+  const parts = m.split(':');
+  if (parts.length !== 2) return NaN;
+  const hh = Number(parts[0]);
+  const mm = Number(parts[1]);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return NaN;
+  return hh * 60 + mm;
+}
+
 /** GET /api/canchas/:id */
 router.get("/:id", async (req, res, next) => {
   try {
@@ -27,15 +38,15 @@ router.get("/:id", async (req, res, next) => {
     }>(
       `SELECT
          c.ID_CANCHA                           AS id,
-         c.NOMBRE                             AS nombre,
+         c.NOMBRE_CANCHA                       AS nombre,
          c.ID_TIPO_CANCHA                     AS "idDisciplina",
          c.VALOR                              AS valor,
          c.ESTADO                             AS estado,
          c.HORA_APERTURA                      AS "horaApertura",
          c.HORA_CIERRE                        AS "horaCierre",
          t.NOMBRE                             AS disciplina
-       FROM CANCHAS c
-       LEFT JOIN TIPOS_CANCHA t ON t.ID_TIPO_CANCHA = c.ID_TIPO_CANCHA
+       FROM TBL_CANCHA c
+       LEFT JOIN TBL_TIPO_CANCHA t ON t.ID_TIPO_CANCHA = c.ID_TIPO_CANCHA
        WHERE c.ID_CANCHA = :id`,
       { id: Number(req.params.id) }
     );
@@ -48,34 +59,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-/** GET /api/canchas */
-router.get("/", async (_req, res, next) => {
-  try {
-    const result = await dbExecute<{
-      id: number;
-      nombre: string;
-      idDisciplina: number;
-      valor: number;
-      estado: EstadoCancha;
-      horaApertura: string;
-      horaCierre: string;
-    }>(
-      `SELECT
-         c.ID_CANCHA                           AS id,
-         c.NOMBRE                             AS nombre,
-         c.ID_TIPO_CANCHA                     AS "idDisciplina",
-         c.VALOR                              AS valor,
-         c.ESTADO                             AS estado,
-         c.HORA_APERTURA                      AS "horaApertura",
-         c.HORA_CIERRE                        AS "horaCierre"
-       FROM CANCHAS c`
-    );
-
-    res.json(result.rows || []);
-  } catch (err) {
-    next(err);
-  }
-});
+// (removed duplicate GET / — consolidated implementation is below)
 
 /** POST /api/canchas */
 router.post("/", async (req, res, next) => {
@@ -92,17 +76,22 @@ router.post("/", async (req, res, next) => {
     if (!idDisciplina) throw new Error("La disciplina es obligatoria");
     if (!(valor > 0)) throw new Error("El valor debe ser mayor que 0");
     if (!horaApertura || !horaCierre) throw new Error("Horas de apertura/cierre obligatorias");
+    // validar formato HH:MM y orden
+    const minA = toMinutes(horaApertura);
+    const minC = toMinutes(horaCierre);
+    if (Number.isNaN(minA) || Number.isNaN(minC)) return res.status(400).json({ error: "Formato de hora inválido. Use 'HH:MM'." });
+    if (!(minA < minC)) return res.status(400).json({ error: "La hora de apertura debe preceder a la hora de cierre." });
     assertEstado(estado);
 
     try {
       const result = await dbExecute<any, oracledb.BindParameters>(
-        `INSERT INTO CANCHAS
-           (ID_CANCHA, NOMBRE, ID_TIPO_CANCHA, VALOR, ESTADO, HORA_APERTURA, HORA_CIERRE)
-         VALUES
-           (CANCHAS_SEQ.NEXTVAL, :nombre, :idDisciplina, :valor, :estado,
-            :horaApertura,
-            :horaCierre)
-         RETURNING ID_CANCHA INTO :outId`,
+        `INSERT INTO TBL_CANCHA
+               (ID_TIPO_CANCHA, NOMBRE_CANCHA, VALOR, ESTADO, HORA_APERTURA, HORA_CIERRE)
+             VALUES
+               (:idDisciplina, :nombre, :valor, :estado,
+                :horaApertura,
+                :horaCierre)
+             RETURNING ID_CANCHA INTO :outId`,
         {
           nombre,
           idDisciplina,
@@ -124,12 +113,12 @@ router.post("/", async (req, res, next) => {
       if ((err?.message ?? "").includes("ORA-00904") || (err?.message ?? "").includes("RETURNING")) {
         // Insert sin RETURNING
         await dbExecute(
-          `INSERT INTO CANCHAS
-             (NOMBRE, ID_TIPO_CANCHA, VALOR, ESTADO, HORA_APERTURA, HORA_CIERRE)
-           VALUES
-             (:nombre, :idDisciplina, :valor, :estado,
-              :horaApertura,
-              :horaCierre)`,
+          `INSERT INTO TBL_CANCHA
+               (ID_TIPO_CANCHA, NOMBRE_CANCHA, VALOR, ESTADO, HORA_APERTURA, HORA_CIERRE)
+             VALUES
+               (:idDisciplina, :nombre, :valor, :estado,
+                :horaApertura,
+                :horaCierre)`,
           {
             nombre,
             idDisciplina,
@@ -141,13 +130,13 @@ router.post("/", async (req, res, next) => {
         );
 
         // Intentar recuperar el id recien insertado buscando por los campos únicos/semirubrics
-        const q = await dbExecute<{ id_cancha: number }>(
-          `SELECT ID_CANCHA FROM CANCHAS
-             WHERE NOMBRE = :nombre AND ID_TIPO_CANCHA = :idDisciplina
+        const q = await dbExecute<any>(
+          `SELECT ID_CANCHA FROM TBL_CANCHA
+             WHERE NOMBRE_CANCHA = :nombre AND ID_TIPO_CANCHA = :idDisciplina
              ORDER BY ID_CANCHA DESC FETCH FIRST 1 ROWS ONLY`,
           { nombre, idDisciplina }
         );
-        const id = q.rows?.[0]?.id_cancha;
+        const id = q.rows?.[0]?.ID_CANCHA ?? q.rows?.[0]?.id_cancha;
         return res.json({ id });
       }
 
@@ -175,16 +164,21 @@ router.put("/:id", async (req, res, next) => {
     if (!idDisciplina) throw new Error("La disciplina es obligatoria");
     if (!(valor > 0)) throw new Error("El valor debe ser mayor que 0");
     if (!horaApertura || !horaCierre) throw new Error("Horas de apertura/cierre obligatorias");
+    // validar formato HH:MM y orden
+    const minA2 = toMinutes(horaApertura);
+    const minC2 = toMinutes(horaCierre);
+    if (Number.isNaN(minA2) || Number.isNaN(minC2)) return res.status(400).json({ error: "Formato de hora inválido. Use 'HH:MM'." });
+    if (!(minA2 < minC2)) return res.status(400).json({ error: "La hora de apertura debe preceder a la hora de cierre." });
     assertEstado(estado);
 
-    await dbExecute(
-      `UPDATE CANCHAS
-          SET NOMBRE = :nombre,
-              ID_TIPO_CANCHA = :idDisciplina,
-              VALOR = :valor,
-              ESTADO = :estado,
-              HORA_APERTURA = :horaApertura,
-              HORA_CIERRE   = :horaCierre
+        await dbExecute(
+        `UPDATE TBL_CANCHA
+          SET NOMBRE_CANCHA = :nombre,
+            ID_TIPO_CANCHA = :idDisciplina,
+            VALOR = :valor,
+            ESTADO = :estado,
+            HORA_APERTURA = :horaApertura,
+            HORA_CIERRE   = :horaCierre
         WHERE ID_CANCHA = :id`,
       {
         id,
@@ -219,17 +213,21 @@ router.get("/", async (_req, res, next) => {
     }>(
       `
       SELECT
-        c.ID                          AS id,
-        c.NOMBRE                      AS nombre,
-        c.VALOR                       AS valor,
-        c.ESTADO                      AS estado,
-        c.ID_TIPO_CANCHA              AS "idDisciplina",
-        tc.NOMBRE                     AS disciplina
-      FROM CANCHAS c
-      JOIN TIPOS_CANCHA tc ON tc.ID_TIPO_CANCHA = c.ID_TIPO_CANCHA
-      ORDER BY c.ID DESC
+        c.ID_CANCHA                          AS "id",
+        c.NOMBRE_CANCHA                      AS "nombre",
+        c.VALOR                              AS "valor",
+        c.ESTADO                             AS "estado",
+        c.ID_TIPO_CANCHA                     AS "idDisciplina",
+        c.HORA_APERTURA                      AS "horaApertura",
+        c.HORA_CIERRE                        AS "horaCierre",
+        tc.NOMBRE                            AS "disciplina"
+      FROM TBL_CANCHA c
+      LEFT JOIN TBL_TIPO_CANCHA tc ON tc.ID_TIPO_CANCHA = c.ID_TIPO_CANCHA
+      ORDER BY c.ID_CANCHA DESC
       `
     );
+    console.log('[API] /api/canchas rows sample keys:', Object.keys(((r.rows||[])[0]) || {}));
+    console.log('[API] /api/canchas first row raw:', (r.rows||[])[0]);
     res.json(r.rows ?? []);
   } catch (e) {
     next(e);

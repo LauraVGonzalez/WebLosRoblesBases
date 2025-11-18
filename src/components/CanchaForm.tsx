@@ -83,7 +83,7 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
     if (!v.idDisciplina) return "Selecciona una disciplina.";
     if (!v.estado) return "Selecciona un estado.";
     if (v.valor <= 0) return "El valor debe ser mayor a 0.";
-    if (v.horaApertura >= v.horaCierre) return "La hora de apertura debe ser menor que la de cierre.";
+    if (v.horaApertura >= v.horaCierre) return "La hora de apertura debe preceder a la hora de cierre.";
     return null;
   };
 
@@ -95,7 +95,19 @@ export default function CanchaForm({ initial, loading, submitLabel, onSubmit }: 
       return;
     }
     setError(null);
-    await onSubmit(v as Cancha); // v.estado ya no es ''
+    try {
+      await onSubmit(v as Cancha); // v.estado ya no es ''
+    } catch (e: any) {
+      // api.client throws Error(text) where text may be JSON like { error: '...' }
+      let msg = e?.message ?? String(e || 'Error');
+      try {
+        const parsed = JSON.parse(msg);
+        msg = parsed?.error ?? parsed?.message ?? msg;
+      } catch (_) {
+        // keep original
+      }
+      setError(msg);
+    }
   };
 
   return (

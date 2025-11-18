@@ -22,8 +22,14 @@ export default function ReservaYa() {
   const [valor, setValor] = React.useState<string>("");
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
-  // constant list of half-hour slots (memoized so reference is stable between renders)
-  const horas = React.useMemo(() => Array.from({ length: 24 }, (_, h) => [`${h.toString().padStart(2, "0")}:00`, `${h.toString().padStart(2, "0")}:30`]).flat(), []);
+  // constant list of whole-hour slots between 05:00 and 22:00 (memoized so reference is stable)
+  const horas = React.useMemo(() => {
+    const out: string[] = [];
+    for (let h = 5; h <= 22; h++) {
+      out.push(`${h.toString().padStart(2, "0")}:00`);
+    }
+    return out;
+  }, []);
   const [availableHoras, setAvailableHoras] = React.useState<string[]>(() => horas);
   // Custom input for react-datepicker so we can keep our styling and control the trigger
   const CustomDateInput = React.forwardRef<HTMLInputElement, any>((props, ref) => {
@@ -32,7 +38,7 @@ export default function ReservaYa() {
     const handleKeyDown = (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ' ) {
         e.preventDefault();
-        onClick && onClick();
+        if (onClick) onClick();
       }
     };
 
@@ -95,6 +101,8 @@ export default function ReservaYa() {
       try {
         const d = await disciplinasSvc.list();
         setDisciplinas(d);
+        // debug
+        console.debug('[ReservaYa] disciplinas cargadas:', d);
       } catch {
         setDisciplinas([]);
       }
@@ -102,11 +110,13 @@ export default function ReservaYa() {
     (async () => {
       try {
         const list = await canchasSvc.list();
-        // keep only canchas cuyo estado sea ACTIVA (robust to different key casings)
+        console.debug('[ReservaYa] canchas raw:', list);
+        // keep only canchas cuyo estado sea utilizable (robust to different key casings)
         const filtered = (list ?? []).filter((c: any) => {
           const estadoRaw = c?.ESTADO ?? c?.estado ?? c?.Estado ?? "";
           const estado = String(estadoRaw).trim().toUpperCase();
-          return estado === "ACTIVA";
+          // DB might use 'DISPONIBLE' instead of 'ACTIVA' depending on DDL/data
+          return ["ACTIVA", "DISPONIBLE"].includes(estado);
         });
         setCanchas(filtered);
       } catch {
@@ -133,7 +143,30 @@ export default function ReservaYa() {
 
   React.useEffect(() => {
     // prefer the selectedCancha object if available; otherwise attempt to find by id
-    const c = selectedCancha ?? ((filteredCanchas ?? []).find((x: any) => Number(x.id ?? x.id_cancha ?? x.ID_CANCHA ?? x.ID ?? 0) === Number(canchaId)));
+    let c = selectedCancha ?? ((filteredCanchas ?? []).find((x: any) => Number(x.id ?? x.id_cancha ?? x.ID_CANCHA ?? x.ID ?? 0) === Number(canchaId)));
+    // if we couldn't find the cancha in the already-fetched list, or the selected object lacks horario fields, fetch the full cancha detail
+    const lacksHoras = (obj: any) => {
+      if (!obj) return true;
+      const keys = Object.keys(obj || {});
+      const has = (k: string) => keys.includes(k) || Object.prototype.hasOwnProperty.call(obj, k);
+      return !(has('horaApertura') || has('HORA_APERTURA') || has('hora_apertura')) || !(has('horaCierre') || has('HORA_CIERRE') || has('hora_cierre'));
+    };
+
+    if ((!c && canchaId) || (c && lacksHoras(c) && canchaId)) {
+      (async () => {
+        try {
+          const fetched = await canchasSvc.get(Number(canchaId));
+          if (fetched) {
+            setSelectedCancha(fetched);
+            c = fetched;
+            const v = c ? String(c.valor ?? c.VALOR ?? "") : "";
+            setValor(v);
+          }
+        } catch (e) {
+          // ignore fetch errors for UI resilience
+        }
+      })();
+    }
     if (!c) {
       // when no cancha selected, reset valor and available hours
       setValor("");
@@ -169,17 +202,49 @@ export default function ReservaYa() {
       'horaCierre', 'HORA_CIERRE', 'hora_cierre', 'horaFin', 'hora_fin', 'HORA_FIN', 'cierre', 'cierre_hora', 'fin', 'horario_fin'
     ]);
 
-    const toMinutes = (hhmm: string) => {
-      if (!hhmm) return NaN;
+    const toMinutes = (hhmm: any) => {
+      if (hhmm === undefined || hhmm === null) return NaN;
+
+      // If it's a Date object, use hours and minutes directly
+      if (hhmm instanceof Date) {
+        return hhmm.getHours() * 60 + hhmm.getMinutes();
+      }
+
       const s = String(hhmm).trim();
-      // accept 'HH:mm' or 'H' or 'HH' formats
-      if (s.includes(":")) {
-        const parts = s.split(":");
+      if (!s) return NaN;
+
+      // Handle ISO datetime like '2024-01-01T13:00:00.000Z' or '2024-01-01 13:00:00'
+      if (s.includes('T')) {
+        const timePart = s.split('T')[1] ?? '';
+        // strip timezone if present
+        const clean = timePart.split('.')[0].replace(/Z$/,'');
+        const parts = clean.split(':');
         const hh = Number(parts[0]);
         const mm = Number(parts[1] ?? 0);
         if (Number.isNaN(hh) || Number.isNaN(mm)) return NaN;
         return hh * 60 + mm;
       }
+
+      if (s.includes(' ')) {
+        const afterSpace = s.split(' ')[1] ?? s;
+        if (afterSpace.includes(':')) {
+          const parts = afterSpace.split(':');
+          const hh = Number(parts[0]);
+          const mm = Number(parts[1] ?? 0);
+          if (Number.isNaN(hh) || Number.isNaN(mm)) return NaN;
+          return hh * 60 + mm;
+        }
+      }
+
+      // accept 'HH:mm' or 'H' or 'HH' formats
+      if (s.includes(':')) {
+        const parts = s.split(':');
+        const hh = Number(parts[0]);
+        const mm = Number(parts[1] ?? 0);
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return NaN;
+        return hh * 60 + mm;
+      }
+
       // if only hour provided like '7' or '07'
       const hh = Number(s);
       if (Number.isNaN(hh)) return NaN;
@@ -199,7 +264,12 @@ export default function ReservaYa() {
         const filteredHoursNum = horas.filter(h => {
           const [hh, mm] = h.split(":").map(s => Number(s));
           const val = hh * 60 + mm;
-          return val >= fmin && val <= fmax;
+          if (fmax >= fmin) {
+            // same-day closure: start time + 60min must be <= cierre
+            return val >= fmin && (val + 60) <= fmax;
+          }
+          // closure next day: allow starts that finish before midnight or finish before cierre (next day)
+          return (val >= fmin && (val + 60) <= 24 * 60) || ((val + 60) <= fmax);
         });
         setAvailableHoras(filteredHoursNum);
         if (horaInicio && !filteredHoursNum.includes(horaInicio)) setHoraInicio("");
@@ -210,11 +280,23 @@ export default function ReservaYa() {
       return;
     }
 
-    const filteredHours = horas.filter(h => {
-      const [hh, mm] = h.split(":").map(s => Number(s));
-      const val = hh * 60 + mm;
-      return val >= min && val <= max;
-    });
+    let filteredHours: string[];
+    if (max >= min) {
+      // same-day closure: only include start times whose +1h does not exceed cierre
+      filteredHours = horas.filter(h => {
+        const [hh, mm] = h.split(":").map(s => Number(s));
+        const val = hh * 60 + mm;
+        return val >= min && (val + 60) <= max;
+      });
+    } else {
+      // cierre es al día siguiente (p. ej. apertura 18:00, cierre 02:00)
+      // allow starts that finish before midnight, or starts after midnight that finish before cierre
+      filteredHours = horas.filter(h => {
+        const [hh, mm] = h.split(":").map(s => Number(s));
+        const val = hh * 60 + mm;
+        return (val >= min && (val + 60) <= 24 * 60) || ((val + 60) <= max);
+      });
+    }
 
     setAvailableHoras(filteredHours);
     if (horaInicio && !filteredHours.includes(horaInicio)) {
@@ -329,7 +411,6 @@ export default function ReservaYa() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* DISCIPLINA */}
-          <div className="relative">
             <select
               value={disciplinaId}
               onChange={e => setDisciplinaId(e.target.value === "" ? "" : Number(e.target.value))}
@@ -340,7 +421,6 @@ export default function ReservaYa() {
                 <option key={d.id} value={d.id}>{d.nombre}</option>
               ))}
             </select>
-          </div>
 
           {/* CANCHA */}
           <div className="relative">
@@ -442,7 +522,7 @@ export default function ReservaYa() {
             </div>
             <h2 className="text-2xl font-semibold text-zinc-800 mb-2">Reserva exitosa</h2>
             <p className="text-sm text-zinc-600 mb-6">Se registró correctamente la reserva</p>
-            <button className="px-6 py-3 bg-emerald-600 text-white rounded-md shadow" onClick={() => setShowSuccess(false)}>Listo</button>
+            <button className="px-6 py-3 bg-emerald-600 text-white rounded-md shadow" onClick={() => { setShowSuccess(false); navigate('/Principal/Reservas'); }}>Listo</button>
           </div>
         </div>
       )}

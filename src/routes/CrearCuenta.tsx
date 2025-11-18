@@ -120,7 +120,7 @@ export default function CrearCuenta() {
       }
     } catch (err: any) {
       // Si el error es un string con JSON, intenta parsear y buscar el mensaje
-      let msg = err.message || "Error de red";
+      const msg = err.message || "Error de red";
       try {
         const parsed = JSON.parse(msg);
         if (parsed.error && parsed.error.toLowerCase().includes('correo')) {

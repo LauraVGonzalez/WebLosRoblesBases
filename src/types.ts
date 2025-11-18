@@ -15,3 +15,10 @@ export type Cancha = {
   horaApertura: string; // 'HH:mm'
   horaCierre: string;   // 'HH:mm'
 };
+
+export type Implemento = {
+  id: number; // ID_IMPLEMENTO
+  tipo: string; // TIPO_IMPLEMENTO
+  estado: string; // ESTADO
+  cantidad: number; // CANTIDAD
+};
